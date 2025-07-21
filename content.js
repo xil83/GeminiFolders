@@ -1,138 +1,50 @@
-console.log("Rozszerzenie 'Foldery dla Gemini' v9 załadowane - Ostateczna poprawka ID.");
+console.log("Rozszerzenie 'Foldery dla Gemini' v11.0 załadowane - Poprawki UI.");
 
 const TARGET_SELECTOR = '.chat-history-list';
 const CHAT_ITEM_SELECTOR = '.conversation-items-container';
 
-// ... (funkcje renderFolderList i handleAddFolderClick - bez zmian) ...
+// ... (większość kodu bez zmian) ...
 function loadAndRenderFolders() { chrome.storage.local.get({ geminiFolders: [] }, (data) => { renderFolderList(data.geminiFolders); }); }
-function renderFolderList(folders) {
-    const folderListElement = document.getElementById('folder-list');
-    if (!folderListElement) return;
-    folderListElement.innerHTML = '';
-    if (folders.length === 0) {
-        const placeholder = document.createElement('li');
-        placeholder.className = 'folder-placeholder';
-        placeholder.textContent = 'Brak folderów. Dodaj swój pierwszy!';
-        folderListElement.appendChild(placeholder);
-    } else {
-        folders.forEach(folder => {
-            const folderContainer = document.createElement('li');
-            const folderItem = document.createElement('div');
-            folderItem.className = 'folder-item';
-            folderItem.innerHTML = `📁 <span>${folder.name}</span> <span class="chat-count">(${folder.chats.length})</span>`;
-            folderItem.dataset.folderId = folder.id;
-            const chatsContainer = document.createElement('ul');
-            chatsContainer.className = 'chats-in-folder hidden';
-            chatsContainer.id = `chats-for-${folder.id}`;
-            if (folder.chats.length > 0) {
-                folder.chats.forEach(chat => {
-                    const chatItem = document.createElement('li');
-                    chatItem.innerHTML = `<a href="${chat.url}" class="chat-in-folder-item">${chat.title}</a>`;
-                    chatsContainer.appendChild(chatItem);
-                });
-                folderItem.addEventListener('click', () => {
-                    document.getElementById(`chats-for-${folder.id}`).classList.toggle('hidden');
-                    folderItem.classList.toggle('expanded');
-                });
-            } else {
-                folderItem.classList.add('empty');
-            }
-            folderContainer.appendChild(folderItem);
-            folderContainer.appendChild(chatsContainer);
-            folderListElement.appendChild(folderContainer);
-        });
-    }
-}
-function handleAddFolderClick() {
-    const folderName = prompt("Wpisz nazwę nowego folderu:");
-    if (folderName && folderName.trim() !== '') {
-        const newFolder = { id: `folder_${Date.now()}`, name: folderName.trim(), chats: [] };
-        chrome.storage.local.get({ geminiFolders: [] }, (data) => {
-            const updatedFolders = [...data.geminiFolders, newFolder];
-            chrome.storage.local.set({ geminiFolders: updatedFolders }, () => {
-                renderFolderList(updatedFolders);
-            });
-        });
-    }
-}
-
-// ============== OSTATECZNA WERSJA LOGIKI ODCZYTU ID ==============
-
-function showFolderSelectionMenu(event, chatItem) {
-    event.stopPropagation();
-    closeExistingMenus();
-
-    const titleElement = chatItem.querySelector('.conversation-title');
-    const title = titleElement ? titleElement.textContent.trim() : 'Bez tytułu';
-    
-    const logElement = chatItem.querySelector('[jslog]');
-    const jslog = logElement ? logElement.getAttribute('jslog') : null;
-
-    if (!jslog) {
-        console.error("Krytyczny błąd: Nie znaleziono atrybutu 'jslog' dla czatu:", title);
-        alert("Błąd: Nie można zidentyfikować tego czatu.");
-        return;
-    }
-
-    // NOWE, POPRAWIONE WYRAŻENIE REGULARNE:
-    // Szuka sekwencji "c_" po której następuje długa seria znaków alfanumerycznych,
-    // która jest zamknięta w cudzysłowie. To jest nasz unikalny identyfikator.
-    const match = jslog.match(/"c_([a-f0-9]{10,})"/);
-
-    if (!match || !match[1]) {
-        console.error("Krytyczny błąd: Nowe wyrażenie regularne nie znalazło ID w atrybucie jslog:", jslog);
-        alert("Błąd: Nie udało się wyodrębnić ID czatu. Skontaktuj się z deweloperem.");
-        return;
-    }
-    
-    // Używamy grupy [1] z dopasowania - to jest CZYSTY identyfikator.
-    const chatId = match[1];
-    const chatUrl = `https://gemini.google.com/app/${chatId}`;
-
-    chrome.storage.local.get({ geminiFolders: [] }, (data) => {
-        if (data.geminiFolders.length === 0) {
-            alert("Najpierw musisz stworzyć folder!");
-            return;
-        }
-        const menu = document.createElement('div');
-        menu.id = 'folder-selection-menu';
-        data.geminiFolders.forEach(folder => {
-            const menuItem = document.createElement('div');
-            menuItem.className = 'folder-selection-item';
-            menuItem.textContent = folder.name;
-            menuItem.addEventListener('click', () => addChatToFolder({ id: chatId, title, url: chatUrl }, folder.id));
-            menu.appendChild(menuItem);
-        });
-        menu.style.left = `${event.pageX}px`;
-        menu.style.top = `${event.pageY}px`;
-        document.body.appendChild(menu);
-        setTimeout(() => document.addEventListener('click', closeExistingMenus, { once: true }), 100);
-    });
-}
-
-function addChatToFolder(chatData, folderId) {
-    chrome.storage.local.get({ geminiFolders: [] }, (data) => {
-        const folders = data.geminiFolders;
-        const targetFolder = folders.find(f => f.id === folderId);
-        if (targetFolder) {
-            const chatExists = targetFolder.chats.some(c => c.id === chatData.id);
-            if (!chatExists) {
-                targetFolder.chats.push(chatData);
-                chrome.storage.local.set({ geminiFolders: folders }, () => {
-                    alert(`Dodano czat do folderu: ${targetFolder.name}`);
-                    loadAndRenderFolders();
-                });
-            } else {
-                alert("Ten czat już jest w tym folderze.");
-            }
-        }
-    });
-    closeExistingMenus();
-}
-
-// ... (reszta kodu bez zmian) ...
-function enhanceChatsWithControls() { document.querySelectorAll(CHAT_ITEM_SELECTOR).forEach(chatItem => { if (chatItem.querySelector('.add-to-folder-btn')) return; const actionsContainer = chatItem.querySelector('.conversation-actions-container'); if (actionsContainer) { const button = document.createElement('button'); button.innerHTML = '📁'; button.className = 'add-to-folder-btn'; button.title = 'Dodaj do folderu'; button.addEventListener('click', (event) => showFolderSelectionMenu(event, chatItem)); actionsContainer.prepend(button); } }); }
+function renderFolderList(folders) { const folderListElement = document.getElementById('folder-list'); if (!folderListElement) return; folderListElement.innerHTML = ''; if (folders.length === 0) { const placeholder = document.createElement('li'); placeholder.className = 'folder-placeholder'; placeholder.textContent = 'Brak folderów. Dodaj swój pierwszy!'; folderListElement.appendChild(placeholder); } else { folders.forEach(folder => { const folderContainer = document.createElement('li'); const folderItem = document.createElement('div'); folderItem.className = 'folder-item'; folderItem.dataset.folderId = folder.id; const actionsContainer = document.createElement('div'); actionsContainer.className = 'folder-actions'; actionsContainer.innerHTML = `<button class="folder-action-btn rename-btn" title="Zmień nazwę">✏️</button><button class="folder-action-btn delete-btn" title="Usuń folder">🗑️</button>`; const folderContent = document.createElement('div'); folderContent.className = 'folder-content'; folderContent.innerHTML = `📁 <span>${folder.name}</span> <span class="chat-count">(${folder.chats.length})</span>`; folderItem.appendChild(folderContent); folderItem.appendChild(actionsContainer); actionsContainer.querySelector('.rename-btn').addEventListener('click', (e) => { e.stopPropagation(); handleRenameFolder(folder.id); }); actionsContainer.querySelector('.delete-btn').addEventListener('click', (e) => { e.stopPropagation(); handleDeleteFolder(folder.id, folder.name); }); const chatsContainer = document.createElement('ul'); chatsContainer.className = 'chats-in-folder hidden'; chatsContainer.id = `chats-for-${folder.id}`; if (folder.chats.length > 0) { folder.chats.forEach(chat => { const chatItem = document.createElement('li'); chatItem.className = 'chat-in-folder-container'; const chatLink = document.createElement('a'); chatLink.href = chat.url; chatLink.className = 'chat-in-folder-item'; chatLink.textContent = chat.title; const deleteChatBtn = document.createElement('button'); deleteChatBtn.className = 'delete-chat-btn'; deleteChatBtn.innerHTML = '✖'; deleteChatBtn.title = 'Usuń z tego folderu'; deleteChatBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); handleDeleteChatFromFolder(chat.id, folder.id); }); chatItem.appendChild(chatLink); chatItem.appendChild(deleteChatBtn); chatsContainer.appendChild(chatItem); }); folderContent.addEventListener('click', () => { chatsContainer.classList.toggle('hidden'); folderItem.classList.toggle('expanded'); }); } else { folderContent.classList.add('empty'); } folderContainer.appendChild(folderItem); folderContainer.appendChild(chatsContainer); folderListElement.appendChild(folderContainer); }); } }
+function handleAddFolderClick() { const folderName = prompt("Wpisz nazwę nowego folderu:"); if (folderName && folderName.trim() !== '') { const newFolder = { id: `folder_${Date.now()}`, name: folderName.trim(), chats: [] }; chrome.storage.local.get({ geminiFolders: [] }, (data) => { chrome.storage.local.set({ geminiFolders: [...data.geminiFolders, newFolder] }, loadAndRenderFolders); }); } }
+function handleDeleteFolder(folderId, folderName) { if (confirm(`Czy na pewno chcesz usunąć folder "${folderName}" i wszystkie jego powiązania? Tej operacji nie można cofnąć.`)) { chrome.storage.local.get({ geminiFolders: [] }, (data) => { const updatedFolders = data.geminiFolders.filter(f => f.id !== folderId); chrome.storage.local.set({ geminiFolders: updatedFolders }, loadAndRenderFolders); }); } }
+function handleRenameFolder(folderId) { const newName = prompt("Wpisz nową nazwę dla folderu:"); if (newName && newName.trim() !== '') { chrome.storage.local.get({ geminiFolders: [] }, (data) => { const folder = data.geminiFolders.find(f => f.id === folderId); if (folder) { folder.name = newName.trim(); chrome.storage.local.set({ geminiFolders: data.geminiFolders }, loadAndRenderFolders); } }); } }
+function handleDeleteChatFromFolder(chatId, folderId) { chrome.storage.local.get({ geminiFolders: [] }, (data) => { const folder = data.geminiFolders.find(f => f.id === folderId); if (folder) { folder.chats = folder.chats.filter(c => c.id !== chatId); chrome.storage.local.set({ geminiFolders: data.geminiFolders }, loadAndRenderFolders); } }); }
+function showFolderSelectionMenu(event, chatItem) { event.stopPropagation(); closeExistingMenus(); const titleElement = chatItem.querySelector('.conversation-title'); const title = titleElement ? titleElement.textContent.trim() : 'Bez tytułu'; const logElement = chatItem.querySelector('[jslog]'); const jslog = logElement ? logElement.getAttribute('jslog') : null; if (!jslog) { console.error("Krytyczny błąd: Nie znaleziono atrybutu 'jslog' dla czatu:", title); alert("Błąd: Nie można zidentyfikować tego czatu."); return; } const match = jslog.match(/"c_([a-f0-9]{10,})"/); if (!match || !match[1]) { console.error("Krytyczny błąd: Nowe wyrażenie regularne nie znalazło ID w atrybucie jslog:", jslog); alert("Błąd: Nie udało się wyodrębnić ID czatu. Skontaktuj się z deweloperem."); return; } const chatId = match[1]; const chatUrl = `https://gemini.google.com/app/${chatId}`; chrome.storage.local.get({ geminiFolders: [] }, (data) => { if (data.geminiFolders.length === 0) { alert("Najpierw musisz stworzyć folder!"); return; } const menu = document.createElement('div'); menu.id = 'folder-selection-menu'; data.geminiFolders.forEach(folder => { const menuItem = document.createElement('div'); menuItem.className = 'folder-selection-item'; menuItem.textContent = folder.name; menuItem.addEventListener('click', () => addChatToFolder({ id: chatId, title, url: chatUrl }, folder.id)); menu.appendChild(menuItem); }); menu.style.left = `${event.pageX}px`; menu.style.top = `${event.pageY}px`; document.body.appendChild(menu); setTimeout(() => document.addEventListener('click', closeExistingMenus, { once: true }), 100); }); }
+function addChatToFolder(chatData, folderId) { chrome.storage.local.get({ geminiFolders: [] }, (data) => { const folders = data.geminiFolders; const targetFolder = folders.find(f => f.id === folderId); if (targetFolder) { const chatExists = targetFolder.chats.some(c => c.id === chatData.id); if (!chatExists) { targetFolder.chats.push(chatData); chrome.storage.local.set({ geminiFolders: folders }, () => { alert(`Dodano czat do folderu: ${targetFolder.name}`); loadAndRenderFolders(); }); } else { alert("Ten czat już jest w tym folderze."); } } }); closeExistingMenus(); }
 function closeExistingMenus() { const existingMenu = document.getElementById('folder-selection-menu'); if (existingMenu) existingMenu.remove(); }
 function injectUI() { const historyContainer = document.querySelector(TARGET_SELECTOR); if (historyContainer && !document.getElementById('gemini-folder-section')) { const folderSection = document.createElement('div'); folderSection.id = 'gemini-folder-section'; const title = document.createElement('h2'); title.textContent = 'Foldery'; folderSection.appendChild(title); const addButton = document.createElement('button'); addButton.id = 'add-folder-btn'; addButton.textContent = '➕ Dodaj nowy folder'; addButton.addEventListener('click', handleAddFolderClick); folderSection.appendChild(addButton); const folderList = document.createElement('ul'); folderList.id = 'folder-list'; folderSection.appendChild(folderList); historyContainer.prepend(folderSection); loadAndRenderFolders(); enhanceChatsWithControls(); return true; } return false; }
-const observer = new MutationObserver(() => { if (!document.getElementById('gemini-folder-section')) injectUI(); enhanceChatsWithControls(); });
-observer.observe(document.body, { childList: true, subtree: true });
+
+/**
+ * ZMODYFIKOWANA FUNKCJA
+ * Wstawia przycisk folderu na początku kontenera czatu, a nie w menu akcji.
+ */
+function enhanceChatsWithControls() {
+    document.querySelectorAll(CHAT_ITEM_SELECTOR).forEach(chatItem => {
+        if (chatItem.querySelector('.add-to-folder-btn')) return;
+
+        // Upewniamy się, że kontener czatu jest flexboxem
+        chatItem.style.display = 'flex';
+        chatItem.style.alignItems = 'center';
+
+        const button = document.createElement('button');
+        button.innerHTML = '📁';
+        button.className = 'add-to-folder-btn';
+        button.title = 'Dodaj do folderu';
+        button.addEventListener('click', event => showFolderSelectionMenu(event, chatItem));
+
+        // Wstawiamy przycisk na samym początku, przed tytułem czatu
+        chatItem.prepend(button);
+    });
+}
+
+const observer = new MutationObserver(() => {
+    if (!document.getElementById('gemini-folder-section')) injectUI();
+    // Uruchamiamy "ulepszanie" czatów cyklicznie, aby objąć te, które się doładowują
+    enhanceChatsWithControls();
+});
+
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});

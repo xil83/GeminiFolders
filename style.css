@@ -1,14 +1,62 @@
-/* Style z poprzedniego kroku... */
-#gemini-folder-section { padding: 16px; margin-bottom: 10px; border-bottom: 1px solid var(--gps-border-color, #444746); }
-#gemini-folder-section h2 { font-size: 18px; font-weight: 500; color: var(--gps-color-on-surface, #e3e3e3); margin: 0 0 16px 0; padding: 0; }
-#add-folder-btn { width: 100%; padding: 8px 12px; background-color: transparent; border: 1px dashed var(--gps-border-color, #444746); color: var(--gps-color-on-surface-variant, #c4c7c5); border-radius: 8px; cursor: pointer; text-align: left; margin-bottom: 12px; transition: background-color 0.2s ease-in-out; font-size: 14px; }
-#add-folder-btn:hover { background-color: rgba(255, 255, 255, 0.05); }
+/* GŁÓWNA POPRAWKA: Wymuszenie prawidłowej rodziny czcionek Google */
+#gemini-folder-section, #gemini-folder-section button, #gemini-folder-section a {
+    font-family: "Google Sans", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
 
-#folder-list { list-style: none; padding: 0; margin: 0; font-size: 14px; color: var(--gps-color-on-surface-variant, #c4c7c5); display: flex; flex-direction: column; gap: 2px; }
-.folder-placeholder { padding: 6px 10px; font-style: italic; opacity: 0.7; }
-.chat-count { opacity: 0.6; font-size: 12px; }
+#gemini-folder-section {
+    padding: 16px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--gps-border-color, #444746);
+}
 
-/* ZMODYFIKOWANE I NOWE STYLE DLA KROKU 5 */
+#gemini-folder-section h2 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--gps-color-on-surface, #e3e3e3);
+    margin: 0 0 16px 0;
+    padding: 0;
+}
+
+#add-folder-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: transparent;
+    border: 1px dashed var(--gps-border-color, #444746);
+    color: var(--gps-color-on-surface-variant, #c4c7c5);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 12px;
+    transition: background-color 0.2s ease-in-out;
+    font-size: 14px;
+}
+
+#add-folder-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#folder-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    color: var(--gps-color-on-surface-variant, #c4c7c5);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.folder-placeholder {
+    padding: 6px 10px;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.chat-count {
+    opacity: 0.6;
+    font-size: 12px;
+    margin-left: 6px;
+}
 
 .folder-item {
     display: flex;
@@ -16,24 +64,55 @@
     align-items: center;
     padding: 6px 10px;
     border-radius: 6px;
-    cursor: pointer;
     transition: background-color 0.2s ease-in-out;
 }
-.folder-item:not(.empty):hover {
+.folder-item:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
-.folder-item.empty {
+.folder-item.expanded {
+    background-color: rgba(138, 180, 248, 0.1);
+}
+
+.folder-content {
+    flex-grow: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.folder-content.empty {
     cursor: default;
     opacity: 0.7;
 }
-.folder-item.expanded {
-    background-color: rgba(138, 180, 248, 0.1); /* Lekko niebieskie tło dla rozwiniętego */
+
+.folder-actions {
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+.folder-item:hover .folder-actions {
+    opacity: 1;
 }
 
-/* Ukryta lista czatów w folderze */
+.folder-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gps-color-on-surface-variant, #c4c7c5);
+    padding: 4px;
+    border-radius: 4px;
+    margin-left: 4px;
+    font-size: 16px;
+}
+.folder-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--gps-color-on-surface, #e3e3e3);
+}
+
 .chats-in-folder {
     list-style: none;
-    padding: 4px 0 8px 20px; /* Wcięcie dla zagnieżdżenia */
+    padding: 4px 0 8px 20px;
     margin: 0;
     overflow: hidden;
     transition: all 0.3s ease-in-out;
@@ -42,8 +121,19 @@
     display: none;
 }
 
-/* Linki do poszczególnych czatów */
+.chat-in-folder-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 4px;
+    border-radius: 6px;
+}
+.chat-in-folder-container:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
 a.chat-in-folder-item {
+    flex-grow: 1;
     display: block;
     padding: 5px 10px;
     border-radius: 6px;
@@ -51,17 +141,69 @@ a.chat-in-folder-item {
     text-decoration: none;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Dodaje "..." gdy tytuł jest za długi */
+    text-overflow: ellipsis;
 }
 a.chat-in-folder-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
     color: var(--gps-color-on-surface, #e3e3e3);
 }
 
+.delete-chat-btn {
+    background: none;
+    border: none;
+    color: #c4c7c5;
+    cursor: pointer;
+    padding: 0 8px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    border-radius: 4px;
+}
+.chat-in-folder-container:hover .delete-chat-btn {
+    opacity: 1;
+}
+.delete-chat-btn:hover {
+    color: #f28b82; /* Czerwony */
+    background-color: rgba(242, 139, 130, 0.1);
+}
 
-/* Style dla przycisku i menu (bez zmian) */
-.add-to-folder-btn { background: none; border: none; color: var(--gps-color-on-surface-variant, #c4c7c5); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
-.add-to-folder-btn:hover { background-color: rgba(255, 255, 255, 0.15); color: var(--gps-color-on-surface, #e3e3e3); }
-#folder-selection-menu { position: absolute; z-index: 9999; background-color: #35363a; border: 1px solid var(--gps-border-color, #444746); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); padding: 6px; min-width: 150px; }
-.folder-selection-item { padding: 8px 12px; color: var(--gps-color-on-surface, #e3e3e3); cursor: pointer; border-radius: 6px; }
-.folder-selection-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+.add-to-folder-btn {
+    background: none;
+    border: none;
+    color: var(--gps-color-on-surface-variant, #c4c7c5);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.add-to-folder-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--gps-color-on-surface, #e3e3e3);
+}
+
+#folder-selection-menu {
+    position: absolute;
+    z-index: 9999;
+    background-color: #35363a;
+    border: 1px solid var(--gps-border-color, #444746);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    padding: 6px;
+    min-width: 150px;
+}
+
+.folder-selection-item {
+    padding: 8px 12px;
+    color: var(--gps-color-on-surface, #e3e3e3);
+    cursor: pointer;
+    border-radius: 6px;
+}
+.folder-selection-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
