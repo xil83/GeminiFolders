@@ -1,4 +1,6 @@
-/* GŁÓWNA POPRAWKA: Wymuszenie prawidłowej rodziny czcionek Google */
+/* Usunęliśmy wszystkie reguły dotyczące szerokości panelu bocznego. */
+/* Teraz JavaScript jest za to w pełni odpowiedzialny. */
+
 #gemini-folder-section, #gemini-folder-section button, #gemini-folder-section a {
     font-family: "Google Sans", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -162,7 +164,7 @@ a.chat-in-folder-item:hover {
     opacity: 1;
 }
 .delete-chat-btn:hover {
-    color: #f28b82; /* Czerwony */
+    color: #f28b82;
     background-color: rgba(242, 139, 130, 0.1);
 }
 
