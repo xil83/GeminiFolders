@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Foldery dla Gemini",
+  "version": "0.1.0",
+  "description": "Dodaje możliwość tworzenia folderów do organizacji czatów w Gemini.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://gemini.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/app/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "style.css"
+      ]
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}
