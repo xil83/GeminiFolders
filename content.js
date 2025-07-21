@@ -1,7 +1,27 @@
-console.log("Rozszerzenie 'Foldery dla Gemini' v15.0 załadowane - Atak na Shadow DOM.");
+console.log("Rozszerzenie 'Foldery dla Gemini' v16.0 załadowane - Ostateczna metoda zmiany szerokości.");
 
 const TARGET_SELECTOR = '.chat-history-list';
 const CHAT_ITEM_SELECTOR = '.conversation-items-container';
+
+// =========================================================
+// OSTATECZNA, ZAAWANSOWANA FUNKCJA DO ZARZĄDZANIA LAYOUTEM
+// =========================================================
+function overridePanelWidth() {
+    // Celujemy w główny element panelu bocznego, który jest "hostem" dla zmiennych CSS.
+    const sideNavHost = document.querySelector('bard-sidenav');
+    
+    if (sideNavHost) {
+        const newWidth = '400px';
+        
+        // Sprawdzamy, czy nasza wartość jest już ustawiona, aby unikać zbędnej pracy
+        if (sideNavHost.style.getPropertyValue('--bard-sidenav-open-width') !== newWidth) {
+            console.log("Znaleziono hosta panelu! Nadpisywanie zmiennej CSS...");
+            
+            // Używamy `setProperty` z flagą `important`, aby mieć najwyższy priorytet
+            sideNavHost.style.setProperty('--bard-sidenav-open-width', newWidth, 'important');
+        }
+    }
+}
 
 function loadAndRenderFolders() { chrome.storage.local.get({ geminiFolders: [] }, (data) => { renderFolderList(data.geminiFolders); }); }
 function renderFolderList(folders) { const folderListElement = document.getElementById('folder-list'); if (!folderListElement) return; folderListElement.innerHTML = ''; if (folders.length === 0) { const placeholder = document.createElement('li'); placeholder.className = 'folder-placeholder'; placeholder.textContent = 'Brak folderów. Dodaj swój pierwszy!'; folderListElement.appendChild(placeholder); } else { folders.forEach(folder => { const folderContainer = document.createElement('li'); const folderItem = document.createElement('div'); folderItem.className = 'folder-item'; folderItem.dataset.folderId = folder.id; const actionsContainer = document.createElement('div'); actionsContainer.className = 'folder-actions'; actionsContainer.innerHTML = `<button class="folder-action-btn rename-btn" title="Zmień nazwę">✏️</button><button class="folder-action-btn delete-btn" title="Usuń folder">🗑️</button>`; const folderContent = document.createElement('div'); folderContent.className = 'folder-content'; folderContent.innerHTML = `📁 <span>${folder.name}</span> <span class="chat-count">(${folder.chats.length})</span>`; folderItem.appendChild(folderContent); folderItem.appendChild(actionsContainer); actionsContainer.querySelector('.rename-btn').addEventListener('click', (e) => { e.stopPropagation(); handleRenameFolder(folder.id); }); actionsContainer.querySelector('.delete-btn').addEventListener('click', (e) => { e.stopPropagation(); handleDeleteFolder(folder.id, folder.name); }); const chatsContainer = document.createElement('ul'); chatsContainer.className = 'chats-in-folder hidden'; chatsContainer.id = `chats-for-${folder.id}`; if (folder.chats.length > 0) { folder.chats.forEach(chat => { const chatItem = document.createElement('li'); chatItem.className = 'chat-in-folder-container'; const chatLink = document.createElement('a'); chatLink.href = chat.url; chatLink.className = 'chat-in-folder-item'; chatLink.textContent = chat.title; const deleteChatBtn = document.createElement('button'); deleteChatBtn.className = 'delete-chat-btn'; deleteChatBtn.innerHTML = '✖'; deleteChatBtn.title = 'Usuń z tego folderu'; deleteChatBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); handleDeleteChatFromFolder(chat.id, folder.id); }); chatItem.appendChild(chatLink); chatItem.appendChild(deleteChatBtn); chatsContainer.appendChild(chatItem); }); folderContent.addEventListener('click', () => { chatsContainer.classList.toggle('hidden'); folderItem.classList.toggle('expanded'); }); } else { folderContent.classList.add('empty'); } folderContainer.appendChild(folderItem); folderContainer.appendChild(chatsContainer); folderListElement.appendChild(folderContainer); }); } }
@@ -15,45 +35,6 @@ function closeExistingMenus() { const existingMenu = document.getElementById('fo
 function injectUI() { const historyContainer = document.querySelector(TARGET_SELECTOR); if (historyContainer && !document.getElementById('gemini-folder-section')) { const folderSection = document.createElement('div'); folderSection.id = 'gemini-folder-section'; const title = document.createElement('h2'); title.textContent = 'Foldery'; folderSection.appendChild(title); const addButton = document.createElement('button'); addButton.id = 'add-folder-btn'; addButton.textContent = '➕ Dodaj nowy folder'; addButton.addEventListener('click', handleAddFolderClick); folderSection.appendChild(addButton); const folderList = document.createElement('ul'); folderList.id = 'folder-list'; folderSection.appendChild(folderList); historyContainer.prepend(folderSection); loadAndRenderFolders(); return true; } return false; }
 function enhanceChatsWithControls() { document.querySelectorAll(CHAT_ITEM_SELECTOR).forEach(chatItem => { if (chatItem.querySelector('.add-to-folder-btn')) return; chatItem.style.display = 'flex'; chatItem.style.alignItems = 'center'; const button = document.createElement('button'); button.innerHTML = '📁'; button.className = 'add-to-folder-btn'; button.title = 'Dodaj do folderu'; button.addEventListener('click', event => showFolderSelectionMenu(event, chatItem)); chatItem.prepend(button); }); }
 
-// =========================================================
-// OSTATECZNA, ZAAWANSOWANA FUNKCJA DO ZARZĄDZANIA LAYOUTEM
-// =========================================================
-function adjustLayoutAdvanced() {
-    // Cel: Znajdź główny element 'bard-sidenav', który jest hostem dla Shadow DOM.
-    const sideNavHost = document.querySelector('bard-sidenav');
-    if (!sideNavHost) {
-        return; // Host jeszcze nie istnieje, spróbujemy później.
-    }
-
-    // Sprawdź, czy host ma shadowRoot. To kluczowy krok.
-    if (sideNavHost.shadowRoot) {
-        const shadowRoot = sideNavHost.shadowRoot;
-        const styleId = 'gemini-folders-width-override';
-
-        // Jeśli już wstrzyknęliśmy nasz styl, nie rób nic więcej.
-        if (shadowRoot.getElementById(styleId)) {
-            return;
-        }
-
-        console.log("Wykryto Shadow DOM! Wstrzykiwanie stylu do środka...");
-
-        // Stwórz i wstrzyknij tag <style> bezpośrednio do Shadow DOM.
-        const styleElement = document.createElement('style');
-        styleElement.id = styleId;
-        
-        // Używamy reguły, którą odkryłeś, aby nadpisać zmienną CSS.
-        // :host odnosi się do samego elementu 'bard-sidenav' wewnątrz jego Shadow DOM.
-        styleElement.textContent = `
-            :host {
-                --bard-sidenav-open-width: 450px !important;
-            }
-        `;
-        
-        shadowRoot.appendChild(styleElement);
-        console.log("Styl szerokości został pomyślnie wstrzyknięty do Shadow DOM.");
-    }
-}
-
 
 const observer = new MutationObserver(() => {
     if (!document.getElementById('gemini-folder-section')) {
@@ -61,8 +42,8 @@ const observer = new MutationObserver(() => {
     }
     enhanceChatsWithControls();
     
-    // Przy każdej zmianie na stronie, próbujemy dostosować layout za pomocą nowej metody.
-    adjustLayoutAdvanced();
+    // Przy każdej zmianie na stronie, próbujemy nadpisać zmienną CSS.
+    overridePanelWidth();
 });
 
 observer.observe(document.body, {
